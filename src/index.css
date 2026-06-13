@@ -3,64 +3,93 @@
 @tailwind utilities;
 
 @layer base {
+  /* "Quiet Wealth" — deep jewel-toned emerald on faintly green-tinted neutrals.
+     Hues are kept close to the brand (150–175) so the whole UI reads as one
+     designed system rather than default slate. */
   :root {
-    --background: 220 25% 97%;
-    --foreground: 222 47% 11%;
+    --background: 150 24% 98%;
+    --foreground: 172 26% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 172 26% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 160 84% 33%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 215 25% 94%;
-    --secondary-foreground: 222 47% 18%;
-    --muted: 215 25% 94%;
-    --muted-foreground: 215 16% 45%;
-    --accent: 215 28% 93%;
-    --accent-foreground: 222 47% 14%;
-    --info: 217 91% 55%;
-    --info-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --popover-foreground: 172 26% 11%;
+    --primary: 159 76% 29%;
+    --primary-foreground: 150 50% 98%;
+    --secondary: 152 20% 94%;
+    --secondary-foreground: 172 22% 20%;
+    --muted: 150 18% 95%;
+    --muted-foreground: 175 12% 40%;
+    --accent: 152 32% 92%;
+    --accent-foreground: 172 26% 16%;
+    --success: 152 62% 33%;
+    --success-foreground: 150 50% 98%;
+    --warning: 33 92% 45%;
+    --warning-foreground: 30 80% 98%;
+    --info: 196 78% 38%;
+    --info-foreground: 200 60% 98%;
+    --destructive: 4 74% 49%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 22% 89%;
-    --input: 215 22% 85%;
-    --ring: 160 84% 33%;
-    --radius: 0.75rem;
+    --border: 152 16% 89%;
+    --input: 152 16% 85%;
+    --ring: 159 76% 29%;
+    --radius: 0.875rem;
   }
 
   .dark {
-    --background: 222 41% 7%;
-    --foreground: 213 31% 93%;
-    --card: 222 38% 10%;
-    --card-foreground: 213 31% 93%;
-    --popover: 222 38% 10%;
-    --popover-foreground: 213 31% 93%;
-    --primary: 158 70% 42%;
-    --primary-foreground: 160 90% 6%;
-    --secondary: 220 28% 16%;
-    --secondary-foreground: 213 31% 88%;
-    --muted: 220 28% 15%;
-    --muted-foreground: 216 16% 62%;
-    --accent: 220 28% 17%;
-    --accent-foreground: 213 31% 90%;
-    --info: 217 91% 64%;
-    --info-foreground: 222 47% 8%;
-    --destructive: 0 66% 56%;
+    --background: 174 30% 6%;
+    --foreground: 150 16% 92%;
+    --card: 172 26% 9%;
+    --card-foreground: 150 16% 92%;
+    --popover: 172 26% 9%;
+    --popover-foreground: 150 16% 92%;
+    --primary: 156 64% 46%;
+    --primary-foreground: 160 70% 6%;
+    --secondary: 172 20% 15%;
+    --secondary-foreground: 150 14% 86%;
+    --muted: 172 18% 14%;
+    --muted-foreground: 155 12% 60%;
+    --accent: 170 22% 17%;
+    --accent-foreground: 150 16% 90%;
+    --success: 156 56% 46%;
+    --success-foreground: 160 70% 6%;
+    --warning: 38 92% 56%;
+    --warning-foreground: 30 80% 8%;
+    --info: 196 78% 56%;
+    --info-foreground: 200 60% 8%;
+    --destructive: 4 72% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 26% 18%;
-    --input: 220 26% 24%;
-    --ring: 158 70% 42%;
+    --border: 170 18% 18%;
+    --input: 170 18% 23%;
+    --ring: 156 64% 46%;
   }
 
   * { @apply border-border; }
   html { -webkit-tap-highlight-color: transparent; }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    font-feature-settings: 'ss01';
   }
+  /* Page titles wear the display serif — the signature "premium" cue.
+     Smaller headings (card titles, etc.) stay in the clean sans. */
+  h1 {
+    @apply font-display;
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
+  }
+  ::selection { background: hsl(var(--primary) / 0.18); }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-700 rounded-full; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-border; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/40; }
   ::-webkit-scrollbar-track { background: transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
