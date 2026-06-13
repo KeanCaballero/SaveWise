@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
-  ArrowDownRight, ArrowUpRight, ArrowRight, HandCoins, Landmark, PiggyBank,
-  ReceiptText, Repeat, Scale, Sparkles, TrendingDown, TrendingUp, Wallet, Info, AlertTriangle,
+  ArrowRight, HandCoins, Landmark, PiggyBank,
+  ReceiptText, Repeat, Scale, Sparkles, TrendingDown, TrendingUp, Info, AlertTriangle,
 } from 'lucide-react'
 import { useProfile } from '@/context/ProfileContext'
 import { useAsyncData } from '@/hooks/useAsyncData'
@@ -21,7 +21,6 @@ import { runNotificationScan } from '@/lib/notify'
 import { categoryTotals, lastMonthsSeries } from '@/lib/reportData'
 import { categoryMeta } from '@/lib/constants'
 import { cn, formatMoney, greeting, monthStartISO, monthEndISO, prevMonthStartISO, sum, pct, dueInfo, notifyDataChanged } from '@/lib/utils'
-import StatCard from '@/components/shared/StatCard'
 import ProgressRing from '@/components/shared/ProgressRing'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,6 +33,20 @@ const INSIGHT_STYLE = {
   positive: { icon: TrendingUp, class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
   warning: { icon: AlertTriangle, class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   info: { icon: Info, class: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+}
+
+/** Restrained secondary metric — neutral by default; accent only signals meaning. */
+function MiniStat({ label, value, icon: Icon, accent, sub }) {
+  return (
+    <div className="rounded-2xl border bg-card p-4 shadow-soft">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="truncate text-[11px] font-medium uppercase tracking-wide">{label}</span>
+      </div>
+      <p className={cn('mt-2 text-lg font-bold tabular-nums sm:text-xl', accent)}>{value}</p>
+      {sub ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p> : null}
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -126,23 +139,50 @@ export default function Dashboard() {
   }
 
   const { health } = view
+  const monthNet = view.monthIncome - view.monthExpenses
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{greeting()}, {profile.name} 👋</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMMM d, yyyy')} — here's your money at a glance.</p>
-      </div>
+    <div className="space-y-6">
+      {/* Hero — net worth in display serif is the focal point */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-emerald-700 p-6 text-primary-foreground shadow-glow animate-fade-in-up dark:to-emerald-800 sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-60 w-60 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-12 h-52 w-52 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative">
+          <p className="text-sm font-medium text-primary-foreground/80">
+            {greeting()}, {profile.name} · {format(new Date(), 'EEE, MMM d')}
+          </p>
+          <p className="mt-5 text-xs font-medium uppercase tracking-[0.2em] text-primary-foreground/70">Total net worth</p>
+          <div className="mt-1.5 flex flex-wrap items-end gap-x-4 gap-y-2">
+            <p className="font-display text-4xl font-semibold leading-none tabular-nums sm:text-5xl">{formatMoney(view.netWorth, currency)}</p>
+            <span className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur">
+              {monthNet >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+              {monthNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(monthNet), currency)} this month
+            </span>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/15 pt-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">Balance</p>
+              <p className="mt-0.5 font-semibold tabular-nums">{formatMoney(view.cashBalance, currency)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">In · {format(new Date(), 'MMM')}</p>
+              <p className="mt-0.5 font-semibold tabular-nums">{formatMoney(view.monthIncome, currency)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">Out · {format(new Date(), 'MMM')}</p>
+              <p className="mt-0.5 font-semibold tabular-nums">{formatMoney(view.monthExpenses, currency)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Overview cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="Current Balance" value={formatMoney(view.cashBalance, currency)} icon={Wallet} tone="primary" sub="All-time cash flow" />
-        <StatCard label="Net Worth" value={formatMoney(view.netWorth, currency)} icon={Scale} tone="blue" sub="Cash + savings + receivables − debt" />
-        <StatCard label="Monthly Income" value={formatMoney(view.monthIncome, currency)} icon={ArrowUpRight} tone="primary"
-          sub={profile.monthly_income_goal ? `Goal: ${formatMoney(profile.monthly_income_goal, currency)}` : format(new Date(), 'MMMM')} />
-        <StatCard label="Monthly Expenses" value={formatMoney(view.monthExpenses, currency)} icon={ArrowDownRight} tone="red" sub={format(new Date(), 'MMMM')} />
-        <StatCard label="Total Savings" value={formatMoney(view.totalSavings, currency)} icon={PiggyBank} tone="violet" sub="Across all goals" />
-        <StatCard label="Total Debt" value={formatMoney(view.totalDebt, currency)} icon={Landmark} tone={view.totalDebt > 0 ? 'amber' : 'default'} sub={view.totalDebt > 0 ? 'Open debts' : 'Debt-free 🎉'} />
+      {/* Secondary metrics — restrained; color only carries meaning */}
+      <div className="grid grid-cols-3 gap-3">
+        <MiniStat label="Savings" value={formatMoney(view.totalSavings, currency)} icon={PiggyBank} sub="All goals" />
+        <MiniStat label="Debt" value={formatMoney(view.totalDebt, currency)} icon={Landmark}
+          accent={view.totalDebt > 0 ? 'text-warning' : 'text-foreground'} sub={view.totalDebt > 0 ? 'Open' : 'Debt-free'} />
+        <MiniStat label="Net · month" value={`${monthNet >= 0 ? '+' : '−'}${formatMoney(Math.abs(monthNet), currency)}`} icon={Scale}
+          accent={monthNet >= 0 ? 'text-primary' : 'text-destructive'} sub={monthNet >= 0 ? 'Surplus' : 'Deficit'} />
       </div>
 
       {/* Health score + insights */}
@@ -277,7 +317,7 @@ export default function Dashboard() {
                       <p className="truncate text-sm font-medium">{t.category}</p>
                       <p className="truncate text-xs text-muted-foreground">{t.notes || t.date}</p>
                     </div>
-                    <p className={cn('text-sm font-semibold tabular-nums', t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : '')}>
+                    <p className={cn('text-sm font-semibold tabular-nums', t.type === 'income' ? 'text-primary' : '')}>
                       {t.type === 'income' ? '+' : '−'}{formatMoney(t.amount, currency)}
                     </p>
                   </div>
