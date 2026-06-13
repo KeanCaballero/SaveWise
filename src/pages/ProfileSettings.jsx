@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { FlaskConical, KeyRound, Lock, LogOut, Moon, Sun, Monitor, Trash2, UserRound } from 'lucide-react'
 import { useProfile } from '@/context/ProfileContext'
 import { useTheme } from '@/context/ThemeContext'
-import { changePin, deleteProfile, verifyPin } from '@/services/profiles'
+import { changePin, deleteProfile } from '@/services/profiles'
 import { saveSettings } from '@/services/settings'
 import { isDemoMode, exitDemoMode } from '@/services/storage'
 import { isSupabaseConfigured } from '@/lib/supabase'
@@ -34,15 +34,16 @@ function ChangePinDialog({ open, onOpenChange, profile }) {
     if (next !== confirm) return toast.error('New PINs do not match')
     setBusy(true)
     try {
-      const ok = await verifyPin(profile, current)
-      if (!ok) {
-        toast.error('Current PIN is incorrect')
+      const res = await changePin(profile.id, current, next)
+      if (!res.ok) {
+        toast.error(res.status === 'wrong' ? 'Current PIN is incorrect' : 'Could not change PIN')
         return
       }
-      await changePin(profile.id, next)
       toast.success('PIN changed')
       onOpenChange(false)
       setCurrent(''); setNext(''); setConfirm('')
+    } catch (e) {
+      toast.error('Could not change PIN', { description: e.message })
     } finally {
       setBusy(false)
     }

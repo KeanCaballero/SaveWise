@@ -83,7 +83,12 @@ export function sum(rows, field = 'amount') {
   return (rows || []).reduce((acc, r) => acc + (Number(r?.[field]) || 0), 0)
 }
 
-/** SHA-256 hash for PIN codes (client-side profile protection, not auth). */
+/**
+ * SHA-256 PIN hash — used ONLY by Demo Mode (in-browser localStorage DB).
+ * With Supabase, PINs are bcrypt-hashed and verified server-side via the
+ * verify_profile_pin / create_profile / change_profile_pin RPCs; the hash
+ * never reaches the client. See services/profiles.js.
+ */
 export async function hashPin(pin) {
   const data = new TextEncoder().encode(`savewise::${pin}`)
   const digest = await crypto.subtle.digest('SHA-256', data)

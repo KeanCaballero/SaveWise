@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { getProfile, touchProfile } from '@/services/profiles'
 import { getSettings } from '@/services/settings'
-import { getSessionProfileId, setSessionProfileId } from '@/services/storage'
+import { getActiveSessionId, startSession, touchSession, endSession } from '@/services/storage'
 
 const ProfileContext = createContext(null)
 
@@ -10,10 +10,11 @@ export function ProfileProvider({ children }) {
   const [settings, setSettings] = useState(null)
   const [booting, setBooting] = useState(true)
 
-  // Restore the unlocked profile for this browser session (per tab).
+  // Restore the unlocked profile — unless the session has gone idle.
   useEffect(() => {
-    const id = getSessionProfileId()
+    const id = getActiveSessionId()
     if (!id) {
+      endSession()
       setBooting(false)
       return
     }
@@ -22,29 +23,61 @@ export function ProfileProvider({ children }) {
         if (p) {
           setProfile(p)
           setSettings(s)
+          startSession(id) // refresh the idle timer on a fresh load
         } else {
-          setSessionProfileId(null)
+          endSession()
         }
       })
-      .catch(() => setSessionProfileId(null))
+      .catch(() => endSession())
       .finally(() => setBooting(false))
   }, [])
 
   /** Called after a successful PIN check (or right after creating a profile). */
   const unlock = useCallback(async (p) => {
-    setSessionProfileId(p.id)
+    startSession(p.id)
     setProfile(p)
     const s = await getSettings(p.id)
     setSettings(s)
-    touchProfile(p.id).catch(() => {})
+    touchProfile(p.id)
   }, [])
 
   /** Locks the app and returns to profile selection. */
   const lock = useCallback(() => {
-    setSessionProfileId(null)
+    endSession()
     setProfile(null)
     setSettings(null)
   }, [])
+
+  // While a profile is unlocked: refresh the idle timer on activity, and
+  // auto-lock once it expires (also re-checked when the tab regains focus).
+  useEffect(() => {
+    if (!profile) return
+
+    let lastTouch = 0
+    const onActivity = () => {
+      const now = Date.now()
+      if (now - lastTouch > 30_000) {
+        lastTouch = now
+        touchSession()
+      }
+    }
+    const checkIdle = () => {
+      if (!getActiveSessionId()) lock()
+    }
+
+    const activityEvents = ['pointerdown', 'keydown', 'scroll']
+    activityEvents.forEach((e) => window.addEventListener(e, onActivity, { passive: true }))
+    document.addEventListener('visibilitychange', checkIdle)
+    window.addEventListener('focus', checkIdle)
+    const interval = setInterval(checkIdle, 60_000)
+
+    return () => {
+      activityEvents.forEach((e) => window.removeEventListener(e, onActivity))
+      document.removeEventListener('visibilitychange', checkIdle)
+      window.removeEventListener('focus', checkIdle)
+      clearInterval(interval)
+    }
+  }, [profile, lock])
 
   const refreshProfile = useCallback(async () => {
     if (!profile) return

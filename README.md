@@ -40,9 +40,16 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
 
 ## Profiles, PINs & security model (read this)
 
-Version 1 intentionally has **no authentication** — instead it uses a Netflix-style profile system. Each profile has a 4–6 digit PIN, stored as a SHA-256 hash and verified client-side. All data rows carry a `profile_id`, and every query in the app filters by it, so profiles never see each other's data.
+Version 1 has **no full authentication** — it uses a Netflix-style profile system. Each profile has a 4–6 digit PIN with these protections:
 
-This is a **device-trust model**: it protects profiles from casual access on a shared device, but anyone with your anon key can read the database — RLS is enabled with permissive policies. Perfectly fine for personal/family use on your own Supabase project; **not** for hosting strangers' data. The upgrade path for a public release is Supabase Auth + per-user RLS policies — the schema already isolates everything by `profile_id`, so only the policies need rewriting.
+- **PINs are bcrypt-hashed and verified entirely server-side.** Verification, the 3-attempt limit, and the 15-minute lockout all live inside Postgres `SECURITY DEFINER` functions (`verify_profile_pin`, `create_profile`, `change_profile_pin`). The lockout can't be bypassed by calling the REST API directly or skipping the UI.
+- **The PIN hash never reaches the browser.** Column grants revoke `pin_hash`, `failed_attempts` and `locked_until` from the `anon` role, so the client can only read safe profile columns.
+- **Sessions persist across reloads but auto-lock after 15 minutes of inactivity**, requiring the PIN again.
+- Legacy SHA-256 hashes from earlier builds still verify and are transparently upgraded to bcrypt on the next unlock — so existing profiles (and the demo PIN `1234`) keep working after you run the migration.
+
+**Run the migration:** after `schema.sql`, run [`supabase/migrations/0002_pin_security.sql`](supabase/migrations/0002_pin_security.sql) once in the SQL Editor (it's idempotent). Fresh installs of `schema.sql` already include everything.
+
+This is still a **device-trust model**, not multi-tenant isolation: anyone holding your `anon` key can read other profiles' *financial rows* (transactions, budgets, …), because RLS is permissive. That's fine for personal/family use on your own Supabase project; **don't** host strangers' data on it. The upgrade path is Supabase Auth + per-user RLS — and because every table is already keyed by `profile_id`, it's an additive `owner_id` column + a policy swap (sketched at the bottom of the migration file), **not** a rewrite.
 
 ## Sample data
 

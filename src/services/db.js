@@ -33,7 +33,7 @@ function applyLocal(rows, { match = {}, range, order = ['created_at', 'desc'], l
 
 export async function listRows(table, opts = {}) {
   if (isDemoMode()) return applyLocal(localdb.all(table), opts)
-  let q = supabase.from(table).select('*')
+  let q = supabase.from(table).select(opts.columns || '*')
   for (const [k, v] of Object.entries(opts.match || {})) q = q.eq(k, v)
   if (opts.range) {
     if (opts.range.from) q = q.gte(opts.range.field, opts.range.from)
@@ -47,9 +47,9 @@ export async function listRows(table, opts = {}) {
   return data || []
 }
 
-export async function getRow(table, id) {
+export async function getRow(table, id, columns = '*') {
   if (isDemoMode()) return localdb.all(table).find((r) => r.id === id) || null
-  const { data, error } = await supabase.from(table).select('*').eq('id', id).maybeSingle()
+  const { data, error } = await supabase.from(table).select(columns).eq('id', id).maybeSingle()
   if (error) throw error
   return data
 }
