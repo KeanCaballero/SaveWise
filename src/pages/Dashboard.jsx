@@ -18,6 +18,7 @@ import { computeHealthScore, scoreColor } from '@/lib/health'
 import { computeInsights } from '@/lib/insights'
 import { evaluateAchievements } from '@/lib/achievements'
 import { runNotificationScan } from '@/lib/notify'
+import { celebrate } from '@/lib/feedback'
 import { categoryTotals, lastMonthsSeries } from '@/lib/reportData'
 import { categoryMeta } from '@/lib/constants'
 import { cn, formatMoney, greeting, monthStartISO, monthEndISO, prevMonthStartISO, sum, pct, dueInfo, notifyDataChanged } from '@/lib/utils'
@@ -74,6 +75,7 @@ export default function Dashboard() {
         await runNotificationScan(profile.id, currency)
         const unlocked = await evaluateAchievements(profile.id)
         if (!cancelled) {
+          if (unlocked.length) celebrate()
           unlocked.forEach((a) => toast(`${a.icon} Achievement unlocked: ${a.title}`))
           notifyDataChanged()
         }

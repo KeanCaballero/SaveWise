@@ -9,6 +9,7 @@ import { saveSettings } from '@/services/settings'
 import { isDemoMode, exitDemoMode } from '@/services/storage'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { CURRENCY_OPTIONS, formatMoney } from '@/lib/utils'
+import { isSoundEnabled, setSoundEnabled, celebrate } from '@/lib/feedback'
 import PageHeader from '@/components/layout/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
@@ -21,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 
 function ChangePinDialog({ open, onOpenChange, profile }) {
   const [current, setCurrent] = useState('')
@@ -82,6 +84,7 @@ export default function ProfileSettings() {
   const [editOpen, setEditOpen] = useState(false)
   const [pinOpen, setPinOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [sound, setSound] = useState(isSoundEnabled())
 
   const updateSetting = async (patch) => {
     await saveSettings(profile.id, { ...settings, ...patch })
@@ -167,6 +170,22 @@ export default function ProfileSettings() {
                 {CURRENCY_OPTIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Sound &amp; haptics</p>
+              <p className="text-xs text-muted-foreground">A chime when you unlock an achievement. Off if it’s not your thing.</p>
+            </div>
+            <Switch
+              checked={sound}
+              aria-label="Toggle sound and haptics"
+              onCheckedChange={(on) => {
+                setSound(on)
+                setSoundEnabled(on)
+                if (on) celebrate()
+              }}
+            />
           </div>
         </CardContent>
       </Card>
