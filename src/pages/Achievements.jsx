@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useProfile } from '@/context/ProfileContext'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { ACHIEVEMENTS, evaluateAchievements } from '@/lib/achievements'
+import { celebrate } from '@/lib/feedback'
 import { listUnlocked } from '@/services/achievements'
 import { cn, formatDate, notifyDataChanged } from '@/lib/utils'
 import PageHeader from '@/components/layout/PageHeader'
@@ -21,6 +22,7 @@ export default function Achievements() {
   useEffect(() => {
     evaluateAchievements(profile.id).then((newly) => {
       if (newly.length > 0) {
+        celebrate()
         newly.forEach((a) => toast(`${a.icon} Achievement unlocked: ${a.title}`))
         refresh()
         notifyDataChanged()
@@ -57,9 +59,11 @@ export default function Achievements() {
             return (
               <Card
                 key={a.id}
+                onClick={got ? () => celebrate() : undefined}
+                title={got ? 'Play again' : undefined}
                 className={cn(
                   'relative overflow-hidden text-center transition-all',
-                  got ? 'border-amber-300 shadow-lift dark:border-amber-700' : 'opacity-70 grayscale'
+                  got ? 'cursor-pointer border-amber-300 shadow-lift hover:-translate-y-0.5 active:scale-[0.98] dark:border-amber-700' : 'opacity-70 grayscale'
                 )}
               >
                 <CardContent className="flex flex-col items-center gap-2 p-5">

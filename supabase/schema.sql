@@ -166,7 +166,15 @@ insert into achievements (id, title, description, icon, sort_order) values
   ('first_goal',        'Goal Getter',   'Complete your first savings goal',                 '🎯', 4),
   ('streak_30',         'On Fire',       'Track transactions 30 days in a row',              '🔥', 5),
   ('debt_free',         'Debt-Free',     'Pay off every debt you owe',                       '🕊️', 6),
-  ('budget_master',     'Budget Master', 'Finish a month with every budget under its limit', '👑', 7)
+  ('budget_master',     'Budget Master', 'Finish a month with every budget under its limit', '👑', 7),
+  ('income_logged',     'Payday',        'Log your first income',                            '💵', 8),
+  ('streak_7',          'Week Warrior',  'Track transactions 7 days in a row',               '🗓️', 9),
+  ('txn_100',           'Century',       'Log 100 transactions',                             '💯', 10),
+  ('saved_50k',         'Treasurer',     'Reach 50,000 in total savings',                    '💎', 11),
+  ('goal_3',            'Triple Crown',  'Complete 3 savings goals',                         '🏆', 12),
+  ('lender',            'Good Friend',   'Record money you lent out',                        '🤝', 13),
+  ('bill_paid',         'Paid Up',       'Mark a bill as paid',                              '🧾', 14),
+  ('subs_3',            'Subscribed',    'Track 3 subscriptions',                            '📺', 15)
 on conflict (id) do nothing;
 
 create table if not exists profile_achievements (
