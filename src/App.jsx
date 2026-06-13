@@ -5,6 +5,7 @@ import { ProfileProvider, useProfile } from '@/context/ProfileContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { isDemoMode } from '@/services/storage'
 import AppShell from '@/components/layout/AppShell'
+import Landing from '@/pages/Landing'
 import Setup from '@/pages/Setup'
 import ProfileGate from '@/pages/gate/ProfileGate'
 import Dashboard from '@/pages/Dashboard'
@@ -55,6 +56,7 @@ export default function App() {
       <ProfileProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/profiles" element={<ProfileGate />} />
             <Route element={<RequireProfile />}>

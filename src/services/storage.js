@@ -58,6 +58,29 @@ export function getActiveSessionId() {
   return s.profileId
 }
 
+// ---- Known profiles (device-scoped privacy) -----------------------------
+// Profiles are only shown on devices where they were created or explicitly
+// added (via name + PIN), so people on other devices never see your profiles.
+
+const KNOWN_KEY = 'savewise_known_profiles'
+
+export function getKnownProfileIds() {
+  try {
+    return JSON.parse(localStorage.getItem(KNOWN_KEY)) || []
+  } catch {
+    return []
+  }
+}
+
+export function rememberProfile(id) {
+  const ids = getKnownProfileIds()
+  if (!ids.includes(id)) localStorage.setItem(KNOWN_KEY, JSON.stringify([...ids, id]))
+}
+
+export function forgetProfile(id) {
+  localStorage.setItem(KNOWN_KEY, JSON.stringify(getKnownProfileIds().filter((x) => x !== id)))
+}
+
 // ---- Local (browser) database -------------------------------------------
 
 function loadDb() {

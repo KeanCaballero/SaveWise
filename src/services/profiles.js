@@ -65,6 +65,26 @@ export async function verifyPin(profile, pin) {
   return normalizeResult(data)
 }
 
+/**
+ * Adds an existing profile to this device: finds it by name and verifies the
+ * PIN (server-side lockout still applies). Used so you can reach your profile
+ * on a new device without the full profile list ever being shown.
+ * Returns { ok, profile? } or a failed verify result ({ status: 'wrong' | 'locked' | 'not_found' }).
+ */
+export async function claimProfile(name, pin) {
+  const target = name.trim().toLowerCase()
+  if (!target) return { ok: false, status: 'not_found' }
+  const candidates = (await listProfiles()).filter((p) => (p.name || '').trim().toLowerCase() === target)
+  if (candidates.length === 0) return { ok: false, status: 'not_found' }
+  let locked = null
+  for (const p of candidates) {
+    const res = await verifyPin(p, pin)
+    if (res.ok) return { ok: true, profile: p }
+    if (res.status === 'locked') locked = { ...res, ok: false }
+  }
+  return locked || { ok: false, status: 'wrong' }
+}
+
 /** Changes a PIN after checking the current one. Returns { ok, status }. */
 export async function changePin(id, currentPin, newPin) {
   if (isDemoMode()) return changePinLocal(id, currentPin, newPin)
