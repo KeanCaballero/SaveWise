@@ -27,11 +27,22 @@ const NAV = [
   { to: '/achievements', label: 'Achievements', icon: Trophy },
 ]
 
+// Bottom nav stays at 5 — the platform max for comfortable thumb targets.
+// Loans/Bills/etc. live in the desktop sidebar and the profile menu.
+// Secondary destinations: shown in the desktop sidebar, and surfaced on mobile
+// through the header avatar menu (overflow pattern) so nothing is orphaned.
+const SECONDARY = [
+  { to: '/loans', label: 'Loans', icon: HandCoins },
+  { to: '/bills', label: 'Bills', icon: ReceiptText },
+  { to: '/subscriptions', label: 'Subscriptions', icon: Repeat },
+  { to: '/vault', label: 'Family Vault', icon: Users },
+  { to: '/achievements', label: 'Achievements', icon: Trophy },
+]
+
 const MOBILE_NAV = [
   { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { to: '/transactions', label: 'Activity', icon: ArrowLeftRight },
   { to: '/savings', label: 'Savings', icon: PiggyBank },
-  { to: '/loans', label: 'Loans', icon: HandCoins },
   { to: '/reports', label: 'Reports', icon: PieChart },
   { to: '/profile', label: 'Profile', icon: UserRound },
 ]
@@ -39,10 +50,10 @@ const MOBILE_NAV = [
 function Logo() {
   return (
     <Link to="/dashboard" className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground shadow-sm">S</div>
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 font-display text-lg font-semibold text-primary-foreground shadow-glow">S</div>
       <div className="leading-tight">
-        <p className="text-base font-extrabold tracking-tight">SaveWise</p>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Track · Save · Grow</p>
+        <p className="font-display text-base font-semibold tracking-tight">SaveWise</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Track · Save · Grow</p>
       </div>
     </Link>
   )
@@ -82,15 +93,25 @@ export default function AppShell({ children }) {
               to={to}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.98]',
                   isActive
                     ? 'bg-primary/10 text-primary dark:bg-primary/15'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 )
               }
             >
-              <Icon className="h-[18px] w-[18px]" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-all duration-300',
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  <Icon className={cn('h-[18px] w-[18px] transition-transform', isActive && 'scale-105')} />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -119,9 +140,15 @@ export default function AppShell({ children }) {
             <DropdownMenuTrigger className="ml-1 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ProfileAvatar profile={profile} size="sm" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="truncate">{profile?.name}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {SECONDARY.map(({ to, label, icon: Icon }) => (
+                <DropdownMenuItem key={to} className="lg:hidden" onClick={() => navigate(to)}>
+                  <Icon /> {label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator className="lg:hidden" />
               <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <Settings /> Profile & settings
               </DropdownMenuItem>
@@ -144,21 +171,32 @@ export default function AppShell({ children }) {
       </main>
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur pb-safe lg:hidden">
-        <div className="grid grid-cols-6">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/90 backdrop-blur-lg pb-safe lg:hidden">
+        <div className="grid grid-cols-5">
           {MOBILE_NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
+                  'flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors active:scale-95',
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 )
               }
             >
-              <Icon className="h-5 w-5" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'flex h-7 w-12 items-center justify-center rounded-full transition-all duration-300',
+                      isActive ? 'bg-primary/12 dark:bg-primary/20' : 'bg-transparent'
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </div>
