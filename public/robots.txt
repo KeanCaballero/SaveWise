@@ -1,0 +1,3 @@
+# SaveWise is a private personal-finance app — keep it out of search engines.
+User-agent: *
+Disallow: /
