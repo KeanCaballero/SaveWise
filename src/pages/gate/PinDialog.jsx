@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import PinInput from '@/components/shared/PinInput'
@@ -54,6 +54,9 @@ export default function PinDialog({ profile, open, onOpenChange, onUnlocked }) {
           {error ? <p className="text-center text-xs font-medium text-destructive">Incorrect PIN — try again.</p> : null}
           <Button type="submit" className="w-full" disabled={pin.length < 4 || checking}>
             {checking ? 'Checking…' : 'Unlock'}
+          </Button>
+          <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+            Back
           </Button>
         </form>
       </DialogContent>

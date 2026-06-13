@@ -1,7 +1,7 @@
-import { listRows, upsertRow } from './db'
+﻿import { listRows, upsertRow } from './db'
 
 export function listUnlocked(profileId) {
-  return listRows('profile_achievements', { match: { profile_id: profileId } })
+  return listRows('profile_achievements', { match: { profile_id: profileId }, order: ['unlocked_at', 'desc'] })
 }
 
 export function unlock(profileId, achievementId) {

@@ -1,9 +1,9 @@
-import { listRows, upsertRow } from './db'
+﻿import { listRows, upsertRow } from './db'
 
 const DEFAULTS = { currency: 'PHP', theme: 'system', notifications_enabled: true }
 
 export async function getSettings(profileId) {
-  const rows = await listRows('settings', { match: { profile_id: profileId } })
+  const rows = await listRows('settings', { match: { profile_id: profileId }, order: ['updated_at', 'desc'] })
   return rows[0] || { profile_id: profileId, ...DEFAULTS }
 }
 
