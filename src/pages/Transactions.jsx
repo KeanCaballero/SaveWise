@@ -34,6 +34,7 @@ const schema = z.object({
 })
 
 function TransactionForm({ open, onOpenChange, profileId, editing, onSaved }) {
+  const { currency } = useProfile()
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { type: 'expense', amount: '', category: '', date: todayISO(), notes: '' },
@@ -49,7 +50,7 @@ function TransactionForm({ open, onOpenChange, profileId, editing, onSaved }) {
     try {
       const payload = { ...data, notes: data.notes || null }
       if (editing) await updateTransaction(editing.id, payload)
-      else await createTransaction(profileId, payload)
+      else await createTransaction(profileId, payload, currency)
       toast.success(editing ? 'Transaction updated' : 'Transaction added')
       onOpenChange(false)
       reset()
@@ -121,6 +122,10 @@ function Row({ txn, currency, onEdit, onDelete }) {
   const meta = categoryMeta(txn.type, txn.category)
   const Icon = meta.icon
   const income = txn.type === 'income'
+  // Bug 3: show the original recorded amount in small text when it was
+  // recorded in a different currency than the current display currency.
+  const showOriginal = txn.original_currency && txn.original_currency !== currency
+
   return (
     <div className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 sm:px-5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${meta.color}1a`, color: meta.color }}>
@@ -130,9 +135,16 @@ function Row({ txn, currency, onEdit, onDelete }) {
         <p className="truncate text-sm font-medium">{txn.category}</p>
         <p className="truncate text-xs text-muted-foreground">{txn.notes || formatDate(txn.date)}</p>
       </div>
-      <p className={cn('text-sm font-bold tabular-nums', income ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground')}>
-        {income ? '+' : '−'}{formatMoney(txn.amount, currency)}
-      </p>
+      <div className="text-right">
+        <p className={cn('text-sm font-bold tabular-nums', income ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground')}>
+          {income ? '+' : '−'}{formatMoney(txn.displayAmount ?? txn.amount, currency)}
+        </p>
+        {showOriginal && (
+          <p className="text-[10px] tabular-nums text-muted-foreground">
+            {formatMoney(txn.amount, txn.original_currency)}
+          </p>
+        )}
+      </div>
       <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
         <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Edit" onClick={() => onEdit(txn)}><Pencil className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="Delete" onClick={() => onDelete(txn)}><Trash2 className="h-4 w-4" /></Button>
@@ -142,7 +154,7 @@ function Row({ txn, currency, onEdit, onDelete }) {
 }
 
 export default function Transactions() {
-  const { profile, currency } = useProfile()
+  const { profile, currency, convertAmount } = useProfile()
   const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -156,8 +168,20 @@ export default function Transactions() {
     [profile.id, month]
   )
 
+  // Bug 2 fix: map every transaction to include a `displayAmount` (converted to
+  // the profile's display currency) while keeping `amount` intact so the edit
+  // form always shows the original recorded value.
+  const displayTxns = useMemo(
+    () =>
+      (txns || []).map((t) => ({
+        ...t,
+        displayAmount: convertAmount(t.amount, t.original_currency),
+      })),
+    [txns, convertAmount],
+  )
+
   const filtered = useMemo(() => {
-    let rows = txns || []
+    let rows = displayTxns
     if (typeFilter !== 'all') rows = rows.filter((t) => t.type === typeFilter)
     if (catFilter !== 'all') rows = rows.filter((t) => t.category === catFilter)
     if (search.trim()) {
@@ -176,8 +200,8 @@ export default function Transactions() {
     return [...map.entries()]
   }, [filtered])
 
-  const income = sum((txns || []).filter((t) => t.type === 'income'))
-  const expenses = sum((txns || []).filter((t) => t.type === 'expense'))
+  const income   = sum(displayTxns.filter((t) => t.type === 'income'),  'displayAmount')
+  const expenses = sum(displayTxns.filter((t) => t.type === 'expense'), 'displayAmount')
   const allCategories = [...new Set([...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].map((c) => c.id))]
 
   return (
@@ -234,7 +258,11 @@ export default function Transactions() {
               <div className="flex items-center justify-between border-b bg-secondary/50 px-4 py-2 sm:px-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatDate(date, 'EEEE, MMM d')}</p>
                 <p className="text-xs font-medium tabular-nums text-muted-foreground">
-                  {formatMoney(sum(rows.filter((t) => t.type === 'income')) - sum(rows.filter((t) => t.type === 'expense')), currency)}
+                  {formatMoney(
+                    sum(rows.filter((t) => t.type === 'income'),  'displayAmount') -
+                    sum(rows.filter((t) => t.type === 'expense'), 'displayAmount'),
+                    currency,
+                  )}
                 </p>
               </div>
               <div className="divide-y">

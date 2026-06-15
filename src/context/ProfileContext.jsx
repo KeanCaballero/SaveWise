@@ -2,13 +2,15 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { getProfile, touchProfile } from '@/services/profiles'
 import { getSettings } from '@/services/settings'
 import { getActiveSessionId, startSession, touchSession, endSession } from '@/services/storage'
+import { fetchRates, convertAmount as _convertAmount } from '@/lib/exchangeRates'
 
 const ProfileContext = createContext(null)
 
 export function ProfileProvider({ children }) {
-  const [profile, setProfile] = useState(null)
+  const [profile,  setProfile]  = useState(null)
   const [settings, setSettings] = useState(null)
-  const [booting, setBooting] = useState(true)
+  const [rates,    setRates]    = useState(null)   // USD-based rate map
+  const [booting,  setBooting]  = useState(true)
 
   // Restore the unlocked profile — unless the session has gone idle.
   useEffect(() => {
@@ -31,6 +33,14 @@ export function ProfileProvider({ children }) {
       .catch(() => endSession())
       .finally(() => setBooting(false))
   }, [])
+
+  // Fetch (or refresh from cache) exchange rates whenever the display currency
+  // changes — this keeps the rate map current without blocking the UI.
+  useEffect(() => {
+    fetchRates()
+      .then(setRates)
+      .catch((e) => console.warn('SaveWise: could not load exchange rates:', e))
+  }, [settings?.currency])
 
   /** Called after a successful PIN check (or right after creating a profile). */
   const unlock = useCallback(async (p) => {
@@ -88,8 +98,24 @@ export function ProfileProvider({ children }) {
 
   const currency = settings?.currency || 'PHP'
 
+  /**
+   * Convert `amount` (recorded in `fromCurrency`) to the profile's current
+   * display currency. Falls back to the raw amount while rates are loading
+   * or if either currency code is unknown.
+   *
+   * Usage:  convertAmount(txn.amount, txn.original_currency)
+   * Old transactions without original_currency default to 'PHP'.
+   */
+  const convertAmount = useCallback(
+    (amount, fromCurrency) =>
+      _convertAmount(amount, fromCurrency || 'PHP', currency, rates),
+    [currency, rates],
+  )
+
   return (
-    <ProfileContext.Provider value={{ profile, settings, currency, booting, unlock, lock, refreshProfile }}>
+    <ProfileContext.Provider
+      value={{ profile, settings, currency, rates, convertAmount, booting, unlock, lock, refreshProfile }}
+    >
       {children}
     </ProfileContext.Provider>
   )

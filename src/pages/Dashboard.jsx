@@ -51,7 +51,7 @@ function MiniStat({ label, value, icon: Icon, accent, sub }) {
 }
 
 export default function Dashboard() {
-  const { profile, currency } = useProfile()
+  const { profile, currency, convertAmount } = useProfile()
 
   const { data, loading, refresh } = useAsyncData(async () => {
     const monthFrom = monthStartISO()
@@ -91,23 +91,40 @@ export default function Dashboard() {
     if (!data) return null
     const { allTxns, budgets, goals, loans, bills, subs, monthFrom, monthTo } = data
 
-    const inMonth = (t) => t.date >= monthFrom && t.date <= monthTo
-    const monthIncome = sum(allTxns.filter((t) => t.type === 'income' && inMonth(t)))
-    const monthExpenses = sum(allTxns.filter((t) => t.type === 'expense' && inMonth(t)))
-    const cashBalance = sum(allTxns.filter((t) => t.type === 'income')) - sum(allTxns.filter((t) => t.type === 'expense'))
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const inMonth   = (t) => t.date >= monthFrom && t.date <= monthTo
+    const isSettled = (t) => t.date <= today
+
+    // Bug 2 fix: convert every transaction amount to the profile's display
+    // currency before any sum, chart, or insight calculation. `amount` is
+    // overwritten here because no downstream code needs the original value
+    // (editing happens in Transactions.jsx where we preserve it separately).
+    const displayTxns = allTxns.map((t) => ({
+      ...t,
+      amount: convertAmount(t.amount, t.original_currency),
+    }))
+
+    const monthIncome   = sum(displayTxns.filter((t) => t.type === 'income'  && inMonth(t)))
+    const monthExpenses = sum(displayTxns.filter((t) => t.type === 'expense' && inMonth(t)))
+
+    const cashBalance = sum(displayTxns.filter((t) => t.type === 'income'  && isSettled(t)))
+                      - sum(displayTxns.filter((t) => t.type === 'expense' && isSettled(t)))
+    const projectedBalance = sum(displayTxns.filter((t) => t.type === 'income'))
+                           - sum(displayTxns.filter((t) => t.type === 'expense'))
+    const hasFutureTransactions = projectedBalance !== cashBalance
     const totalSavings = sum(goals, 'current_amount')
     const totalDebt = sum(loans.filter((l) => l.kind === 'debt' && l.status !== 'paid'))
     const receivables = sum(loans.filter((l) => l.kind === 'receivable' && l.status !== 'paid'))
     const netWorth = cashBalance + totalSavings + receivables - totalDebt
 
     const spentByCategory = {}
-    for (const t of allTxns) {
+    for (const t of displayTxns) {
       if (t.type === 'expense' && inMonth(t)) spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Number(t.amount)
     }
 
     const health = computeHealthScore({ monthIncome, monthExpenses, totalDebt, budgets, spentByCategory, goals })
     const insights = computeInsights({
-      transactions: allTxns.filter((t) => t.date >= prevMonthStartISO()),
+      transactions: displayTxns.filter((t) => t.date >= prevMonthStartISO()),
       budgets, goals, subscriptions: subs, currency,
     })
 
@@ -119,16 +136,17 @@ export default function Dashboard() {
       .sort((a, b) => (a.due || '').localeCompare(b.due || ''))
       .slice(0, 5)
 
-    const pieData = categoryTotals(allTxns, monthFrom, monthTo)
-    const barData = lastMonthsSeries(allTxns, 6)
-    const recent = allTxns.slice(0, 5)
+    const pieData = categoryTotals(displayTxns, monthFrom, monthTo)
+    const barData = lastMonthsSeries(displayTxns, 6)
+    const recent = displayTxns.slice(0, 5)
     const activeGoals = goals.filter((g) => !g.completed_at && Number(g.current_amount) < Number(g.target_amount)).slice(0, 3)
 
     return {
-      monthIncome, monthExpenses, cashBalance, totalSavings, totalDebt, netWorth,
+      monthIncome, monthExpenses, cashBalance, projectedBalance, hasFutureTransactions,
+      totalSavings, totalDebt, netWorth,
       health, insights, upcoming, pieData, barData, recent, activeGoals,
     }
-  }, [data, currency])
+  }, [data, currency, convertAmount])
 
   if (loading || !view) {
     return (
@@ -165,6 +183,11 @@ export default function Dashboard() {
             <div>
               <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">Balance</p>
               <p className="mt-0.5 font-semibold tabular-nums">{formatMoney(view.cashBalance, currency)}</p>
+              {view.hasFutureTransactions && (
+                <p className="mt-0.5 text-[10px] text-primary-foreground/60 tabular-nums">
+                  {formatMoney(view.projectedBalance, currency)} projected
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">In · {format(new Date(), 'MMM')}</p>
