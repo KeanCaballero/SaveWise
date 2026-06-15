@@ -9,8 +9,36 @@ export function cn(...inputs) {
 }
 
 const CURRENCY_LOCALES = {
-  PHP: 'en-PH', USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP',
-  INR: 'en-IN', AUD: 'en-AU', CAD: 'en-CA', SGD: 'en-SG',
+  // Asia-Pacific
+  PHP: 'en-PH',  // Philippine Peso
+  JPY: 'ja-JP',  // Japanese Yen
+  CNY: 'zh-CN',  // Chinese Yuan
+  KRW: 'ko-KR',  // South Korean Won
+  INR: 'en-IN',  // Indian Rupee
+  SGD: 'en-SG',  // Singapore Dollar
+  HKD: 'zh-HK',  // Hong Kong Dollar
+  THB: 'th-TH',  // Thai Baht
+  MYR: 'ms-MY',  // Malaysian Ringgit
+  IDR: 'id-ID',  // Indonesian Rupiah
+  AUD: 'en-AU',  // Australian Dollar
+  NZD: 'en-NZ',  // New Zealand Dollar
+  // Americas
+  USD: 'en-US',  // US Dollar
+  CAD: 'en-CA',  // Canadian Dollar
+  BRL: 'pt-BR',  // Brazilian Real
+  MXN: 'es-MX',  // Mexican Peso
+  // Europe
+  EUR: 'de-DE',  // Euro
+  GBP: 'en-GB',  // British Pound
+  CHF: 'de-CH',  // Swiss Franc
+  SEK: 'sv-SE',  // Swedish Krona
+  NOK: 'nb-NO',  // Norwegian Krone
+  DKK: 'da-DK',  // Danish Krone
+  PLN: 'pl-PL',  // Polish Zloty
+  TRY: 'tr-TR',  // Turkish Lira
+  // Africa & Middle East
+  ZAR: 'en-ZA',  // South African Rand
+  ILS: 'he-IL',  // Israeli Shekel
 }
 
 export const CURRENCY_OPTIONS = Object.keys(CURRENCY_LOCALES)

@@ -162,7 +162,11 @@ export default function ProfileSettings() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium">Currency</p>
-              <p className="text-xs text-muted-foreground">Used everywhere amounts are shown.</p>
+              <p className="text-xs text-muted-foreground">
+                Amounts are converted to this currency using live exchange rates
+                (updated every 6 hours). Each transaction remembers the currency
+                it was recorded in so conversions stay accurate.
+              </p>
             </div>
             <Select value={currency} onValueChange={(v) => updateSetting({ currency: v })}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { endOfMonth, format, parseISO } from 'date-fns'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -135,28 +135,37 @@ function BudgetCard({ budget, spent, currency, onEdit, onDelete }) {
 }
 
 export default function Budgets() {
-  const { profile, currency } = useProfile()
+  const { profile, currency, convertAmount } = useProfile()
   const [monthInput, setMonthInput] = useState(format(new Date(), 'yyyy-MM'))
   const month = `${monthInput}-01`
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
 
+  // Bug 3 fix: return raw txns from the async loader instead of pre-computing
+  // `spent` inside it — convertAmount (from context) isn't accessible there.
   const { data, loading, refresh } = useAsyncData(async () => {
     const [budgets, txns] = await Promise.all([
       listBudgets(profile.id, month),
       listTransactions(profile.id, { from: month, to: format(endOfMonth(parseISO(month)), 'yyyy-MM-dd') }),
     ])
-    const spent = {}
-    for (const t of txns) {
-      if (t.type === 'expense') spent[t.category] = (spent[t.category] || 0) + Number(t.amount)
-    }
-    return { budgets, spent }
+    return { budgets, txns }
   }, [profile.id, month])
 
-  const budgets = data?.budgets || []
+  // Convert each expense to the display currency, then sum per category.
+  const spent = useMemo(() => {
+    const map = {}
+    for (const t of data?.txns || []) {
+      if (t.type !== 'expense') continue
+      const converted = convertAmount(t.amount, t.original_currency)
+      map[t.category] = (map[t.category] || 0) + converted
+    }
+    return map
+  }, [data?.txns, convertAmount])
+
+  const budgets    = data?.budgets || []
   const totalBudget = sum(budgets)
-  const totalSpent = budgets.reduce((a, b) => a + (data?.spent[b.category] || 0), 0)
+  const totalSpent  = budgets.reduce((a, b) => a + (spent[b.category] || 0), 0)
 
   return (
     <div>
@@ -195,7 +204,7 @@ export default function Budgets() {
             <BudgetCard
               key={b.id}
               budget={b}
-              spent={data.spent[b.category] || 0}
+              spent={spent[b.category] || 0}
               currency={currency}
               onEdit={(x) => { setEditing(x); setFormOpen(true) }}
               onDelete={setDeleting}

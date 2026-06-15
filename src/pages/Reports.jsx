@@ -27,7 +27,7 @@ function ChartCard({ icon: Icon, title, description, children, empty }) {
 }
 
 export default function Reports() {
-  const { profile, currency } = useProfile()
+  const { profile, currency, convertAmount } = useProfile()
   const [period, setPeriod] = useState('monthly')
 
   const window_ = useMemo(() => buildBuckets(period), [period])
@@ -37,11 +37,22 @@ export default function Reports() {
     [profile.id, window_.from, window_.to]
   )
 
-  const rows = useMemo(() => aggregateBuckets(txns || [], window_.buckets), [txns, window_])
-  const pieData = useMemo(() => categoryTotals(txns || [], window_.from, window_.to), [txns, window_])
-  const income = sum((txns || []).filter((t) => t.type === 'income'))
-  const expenses = sum((txns || []).filter((t) => t.type === 'expense'))
-  const noData = (txns || []).length === 0
+  // Bug 3 fix: convert all transaction amounts to the display currency before
+  // passing to chart helpers — otherwise charts show raw recorded amounts with
+  // no conversion when the user has switched currency.
+  const displayTxns = useMemo(
+    () => (txns || []).map((t) => ({
+      ...t,
+      amount: convertAmount(t.amount, t.original_currency),
+    })),
+    [txns, convertAmount],
+  )
+
+  const rows    = useMemo(() => aggregateBuckets(displayTxns, window_.buckets), [displayTxns, window_])
+  const pieData = useMemo(() => categoryTotals(displayTxns, window_.from, window_.to), [displayTxns, window_])
+  const income   = sum(displayTxns.filter((t) => t.type === 'income'))
+  const expenses = sum(displayTxns.filter((t) => t.type === 'expense'))
+  const noData   = (txns || []).length === 0
 
   return (
     <div>
